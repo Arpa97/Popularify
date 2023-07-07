@@ -11,6 +11,7 @@ from spotipy.oauth2 import SpotifyClientCredentials
 
 
 from matplotlib import pyplot as plt # for plotting
+from scipy import stats
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
@@ -25,8 +26,7 @@ from sklearn.model_selection import train_test_split
 
 sns.set_style("whitegrid")
 
-import warnings # http://blog.johnmuellerbooks.com/2015/11/30/warnings-in-python-and-anaconda/
-warnings.filterwarnings("ignore")
+
 
 dataframe = pd.read_csv('SpotifyAudioFeaturesNov2018.csv')
 print(dataframe.head())
@@ -53,6 +53,105 @@ def parse_prediction(prediction):
         return "NO"
     else:
         return "YES"
+
+def print_plot(df, target, feature, plot_type):
+    #plot_type = 'scatter' or 'box'
+    if plot_type == 'scatter':
+        df.plot.scatter(x=feature, y=target, figsize=(10, 5), alpha=0.5)
+    elif plot_type == 'box':
+        df.boxplot(column=feature, by=target, figsize=(10, 5))
+        plt.xlabel(feature)
+        plt.ylabel(target)
+        plt.show()
+    elif plot_type == '' and feature == '':
+        # set palette
+        sns.set_palette('muted')
+
+        # create initial figure
+        fig = plt.figure(figsize=(8,5))
+        ax = fig.add_subplot(111)
+        sns.distplot(df['popularity']/100, color='g', label="Popularity").set_title("Distribution of Popularity Scores - Entire Data Set")
+
+        # create x and y axis labels
+        plt.xlabel("Popularity")
+        plt.ylabel("Density")
+
+        plt.show()
+
+def get_stats(df):
+    # get stats for each feature
+    print(f"There are {df.shape[0]} rows")
+    print(f"There are {df['track_id'].unique().shape} unique songs")
+    print(f"There are {df['artist_name'].unique().shape} unique artists")
+    print(f"There are {df['popularity'].unique().shape} popularity scores")
+    print(f"The mean popularity score is {df['popularity'].mean()}")
+    print(f"There are {df[df['popularity'] > 55]['popularity'].count()} songs with a popularity score > 55")
+    print(f"There are {df[df['popularity'] > 75]['popularity'].count()} songs with a popularity score > 75")
+    print(f"Only {(df[df['popularity'] > 80]['popularity'].count() / df.shape[0])*100:.2f} % of songs have a popularity score > 80")
+# check that deltas in means are significant for selected dependent variables
+def calculate_ANOVA(df, cutoff):
+    df_popular = df[df['popularity'] > cutoff].copy()
+    df_unpopular = df[df['popularity'] <= cutoff].copy()
+    print("Medie di danceability per canzoni popolari e non popolari:")  
+    print(df_popular['danceability'].mean())
+    print(df_unpopular['danceability'].mean())
+    f_val, p_val = stats.f_oneway(df_popular['danceability'], df_unpopular['danceability'])
+    print("Danceability One-way ANOVA P =", p_val)
+    print("Medie di energy per canzoni popolari e non popolari:")
+    print(df_popular['energy'].mean())
+    print(df_unpopular['energy'].mean())
+    f_val, p_val = stats.f_oneway(df_popular['energy'], df_unpopular['energy'])
+    print("Energy One-way ANOVA P =", p_val)
+    print("Medie di loudness per canzoni popolari e non popolari:")
+    print(df_popular['loudness'].mean())
+    print(df_unpopular['loudness'].mean())
+    f_val, p_val = stats.f_oneway(df_popular['loudness'], df_unpopular['loudness'])
+    print("Loudness One-way ANOVA P =", p_val) 
+    print("Medie di valence per canzoni popolari e non popolari:")
+    print(df_popular['valence'].mean())
+    print(df_unpopular['valence'].mean())
+    f_val, p_val = stats.f_oneway(df_popular['valence'], df_unpopular['valence'])
+    print("Valence One-way ANOVA P =", p_val)
+    print("Medie di strumentalità per canzoni popolari e non popolari:")
+    print(df_popular['instrumentalness'].mean())
+    print(df_unpopular['instrumentalness'].mean())
+    f_val, p_val = stats.f_oneway(df_popular['instrumentalness'], df_unpopular['instrumentalness'])
+    print("Instrumentalness One-way ANOVA P =", p_val)
+    print("Medie di BPM per canzoni popolari e non popolari:")
+    print(df_popular['tempo'].mean())
+    print(df_unpopular['tempo'].mean())
+    f_val, p_val = stats.f_oneway(df_popular['tempo'], df_unpopular['tempo'])
+    print("Tempo One-way ANOVA P =", p_val)
+
+
+
+
+#dataframe analysis
+print("PRINTING PLOTS")
+print_plot(dataframe, 'popularity', 'danceability' ,'scatter')
+plt.show()
+print_plot(dataframe, 'popularity', 'energy' ,'scatter')
+plt.show()
+print_plot(dataframe, 'popularity', 'loudness' ,'scatter')
+plt.show()
+print_plot(dataframe, 'popularity', 'speechiness' ,'scatter')
+plt.show()
+print_plot(dataframe, 'popularity', 'acousticness' ,'scatter')
+plt.show()
+print_plot(dataframe, 'popularity', 'instrumentalness' ,'scatter')
+plt.show()
+print_plot(dataframe, 'popularity', 'liveness' ,'scatter')
+plt.show()
+print_plot(dataframe, 'popularity', 'valence' ,'scatter')
+plt.show()
+print_plot(dataframe, 'popularity', 'tempo' ,'scatter')
+plt.show()
+print_plot(dataframe, 'popularity', 'duration_ms' ,'scatter')
+
+get_stats(dataframe)
+
+calculate_ANOVA(dataframe, cutoff=57)
+
 
 if(os.path.exists("RandomForest.joblib")):
     #Using our trained model to make predictions
@@ -110,6 +209,8 @@ else:
         dataframe.loc[dataframe['key'] == list_of_keys[i], 'key'] = i
     print(dataframe.sample(5))
 
+
+
     #making popularity binary
     dataframe.loc[dataframe['popularity'] < 57, 'popularity'] = 0 
     dataframe.loc[dataframe['popularity'] >= 57, 'popularity'] = 1
@@ -125,6 +226,9 @@ else:
     X_test = dataframe.drop(training.index)[features]
 
     X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size = 0.2, random_state = 420)
+
+
+
 
     LR_Model = LogisticRegression()
     LR_Model.fit(X_train, y_train)
