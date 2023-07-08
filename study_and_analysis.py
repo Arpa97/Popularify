@@ -49,7 +49,7 @@ def spotyLog():
     return session
 
 def load_dataset():
-    df = pd.read_csv('SpotifyAudioFeaturesNov2018.csv')
+    df = pd.read_csv('SpotifyAudioFeaturesApril2019.csv')
     return df
 
 def heatmap(data, row_labels, col_labels, ax=None,
@@ -188,7 +188,6 @@ def show_correlations(df, target, n):
     
     im, cbar = heatmap(df.corr(), labels, labels, ax=ax,
                        cmap="YlGn", cbarlabel="Correlation")
-    texts = annotate_heatmap(im, valfmt="{x:.1f} t")
     
     fig.tight_layout()
 
@@ -615,21 +614,33 @@ if __name__ == '__main__':
 
     get_stats(df)
     calculate_ANOVA(df,57)
-    print_confusion_matrix(df,57)
+    #print_confusion_matrix(df,57)
     plot_cutoffs_vs_metrics(df)
 
 
+    print_plot(df, 'popularity','','')
+    #plt.show()
+    '''
     #plotting correlation between popularity and other features
     print_plot(df, 'popularity', 'danceability' ,'scatter')
+    plt.show()
     print_plot(df, 'popularity', 'energy' ,'scatter')
+    plt.show()
     print_plot(df, 'popularity', 'loudness' ,'scatter')
+    plt.show()
     print_plot(df, 'popularity', 'speechiness' ,'scatter')
+    plt.show()
     print_plot(df, 'popularity', 'acousticness' ,'scatter')
+    plt.show()
     print_plot(df, 'popularity', 'instrumentalness' ,'scatter')
+    plt.show()
     print_plot(df, 'popularity', 'liveness' ,'scatter')
+    plt.show()
     print_plot(df, 'popularity', 'valence' ,'scatter')
+    plt.show()
     print_plot(df, 'popularity', 'tempo' ,'scatter')
+    plt.show()
     print_plot(df, 'popularity', 'duration_ms' ,'scatter')
-    
-
+    plt.show()
+    '''
         

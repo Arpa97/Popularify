@@ -9,8 +9,8 @@ from dotenv import load_dotenv
 from spotipy.oauth2 import SpotifyClientCredentials
 
 
-
 from matplotlib import pyplot as plt # for plotting
+from pandas.plotting import table # for plotting tables
 from scipy import stats
 
 from sklearn.linear_model import LogisticRegression
@@ -28,11 +28,19 @@ sns.set_style("whitegrid")
 
 
 
-dataframe = pd.read_csv('SpotifyAudioFeaturesNov2018.csv')
+dataframe = pd.read_csv('SpotifyAudioFeaturesApril2019.csv')
 print(dataframe.head())
 
-print(dataframe.describe())
+print("Dataframe description: \n")
+des = dataframe.describe()
+print (des.keys())
+with pd.option_context('display.max_seq_items', None):
+    print(des)
+#saving des as .csv
+np.savetxt("dataframe_description.csv", des, delimiter=",", fmt='%s')
 
+plt.show()
+print("Dataframe keys: \n")
 print(dataframe.keys())
 
 print(pd.isnull(dataframe).sum())
@@ -78,80 +86,10 @@ def print_plot(df, target, feature, plot_type):
 
         plt.show()
 
-def get_stats(df):
-    # get stats for each feature
-    print(f"There are {df.shape[0]} rows")
-    print(f"There are {df['track_id'].unique().shape} unique songs")
-    print(f"There are {df['artist_name'].unique().shape} unique artists")
-    print(f"There are {df['popularity'].unique().shape} popularity scores")
-    print(f"The mean popularity score is {df['popularity'].mean()}")
-    print(f"There are {df[df['popularity'] > 55]['popularity'].count()} songs with a popularity score > 55")
-    print(f"There are {df[df['popularity'] > 75]['popularity'].count()} songs with a popularity score > 75")
-    print(f"Only {(df[df['popularity'] > 80]['popularity'].count() / df.shape[0])*100:.2f} % of songs have a popularity score > 80")
-# check that deltas in means are significant for selected dependent variables
-def calculate_ANOVA(df, cutoff):
-    df_popular = df[df['popularity'] > cutoff].copy()
-    df_unpopular = df[df['popularity'] <= cutoff].copy()
-    print("Medie di danceability per canzoni popolari e non popolari:")  
-    print(df_popular['danceability'].mean())
-    print(df_unpopular['danceability'].mean())
-    f_val, p_val = stats.f_oneway(df_popular['danceability'], df_unpopular['danceability'])
-    print("Danceability One-way ANOVA P =", p_val)
-    print("Medie di energy per canzoni popolari e non popolari:")
-    print(df_popular['energy'].mean())
-    print(df_unpopular['energy'].mean())
-    f_val, p_val = stats.f_oneway(df_popular['energy'], df_unpopular['energy'])
-    print("Energy One-way ANOVA P =", p_val)
-    print("Medie di loudness per canzoni popolari e non popolari:")
-    print(df_popular['loudness'].mean())
-    print(df_unpopular['loudness'].mean())
-    f_val, p_val = stats.f_oneway(df_popular['loudness'], df_unpopular['loudness'])
-    print("Loudness One-way ANOVA P =", p_val) 
-    print("Medie di valence per canzoni popolari e non popolari:")
-    print(df_popular['valence'].mean())
-    print(df_unpopular['valence'].mean())
-    f_val, p_val = stats.f_oneway(df_popular['valence'], df_unpopular['valence'])
-    print("Valence One-way ANOVA P =", p_val)
-    print("Medie di strumentalità per canzoni popolari e non popolari:")
-    print(df_popular['instrumentalness'].mean())
-    print(df_unpopular['instrumentalness'].mean())
-    f_val, p_val = stats.f_oneway(df_popular['instrumentalness'], df_unpopular['instrumentalness'])
-    print("Instrumentalness One-way ANOVA P =", p_val)
-    print("Medie di BPM per canzoni popolari e non popolari:")
-    print(df_popular['tempo'].mean())
-    print(df_unpopular['tempo'].mean())
-    f_val, p_val = stats.f_oneway(df_popular['tempo'], df_unpopular['tempo'])
-    print("Tempo One-way ANOVA P =", p_val)
-
-
-
-
-#dataframe analysis
-print("PRINTING PLOTS")
-print_plot(dataframe, 'popularity', 'danceability' ,'scatter')
-plt.show()
-print_plot(dataframe, 'popularity', 'energy' ,'scatter')
-plt.show()
-print_plot(dataframe, 'popularity', 'loudness' ,'scatter')
-plt.show()
-print_plot(dataframe, 'popularity', 'speechiness' ,'scatter')
-plt.show()
-print_plot(dataframe, 'popularity', 'acousticness' ,'scatter')
-plt.show()
-print_plot(dataframe, 'popularity', 'instrumentalness' ,'scatter')
-plt.show()
-print_plot(dataframe, 'popularity', 'liveness' ,'scatter')
-plt.show()
-print_plot(dataframe, 'popularity', 'valence' ,'scatter')
-plt.show()
-print_plot(dataframe, 'popularity', 'tempo' ,'scatter')
-plt.show()
-print_plot(dataframe, 'popularity', 'duration_ms' ,'scatter')
-
-get_stats(dataframe)
-
-calculate_ANOVA(dataframe, cutoff=57)
-
+def summary(model):
+    # summary of the model
+    print('model intercept :', model.intercept_)
+    print('model coefficients : ', model.coef_)
 
 if(os.path.exists("RandomForest.joblib")):
     #Using our trained model to make predictions
@@ -202,6 +140,7 @@ if(os.path.exists("RandomForest.joblib")):
 
 else:
     correlation = dataframe[['popularity','danceability', 'energy', 'loudness', 'speechiness', 'acousticness', 'instrumentalness', 'liveness', 'valence', 'tempo','duration_ms']].corr()
+    
     print(correlation)
 
     list_of_keys = dataframe['key'].unique()
@@ -229,7 +168,8 @@ else:
 
 
 
-
+    print("LOGISTIC REGRESSION")
+    print("--------------------------------------------------")
     LR_Model = LogisticRegression()
     LR_Model.fit(X_train, y_train)
     LR_Predict = LR_Model.predict(X_valid)
@@ -239,6 +179,9 @@ else:
     LR_AUC = roc_auc_score(y_valid, LR_Predict) 
     print("AUC: " + str(LR_AUC))
 
+    print("--------------------------------------------------")
+    print("RANDOM FOREST")
+    print("--------------------------------------------------")
     RFC_Model = RandomForestClassifier()
     RFC_Model.fit(X_train, y_train)
     RFC_Predict = RFC_Model.predict(X_valid)
@@ -249,6 +192,10 @@ else:
     RFC_AUC = roc_auc_score(y_valid, RFC_Predict) 
     print("AUC: " + str(RFC_AUC))
 
+
+    print("--------------------------------------------------")
+    print("KNN")
+    print("--------------------------------------------------")
     KNN_Model = KNeighborsClassifier()
     KNN_Model.fit(X_train, y_train)
     KNN_Predict = KNN_Model.predict(X_valid)
@@ -258,6 +205,9 @@ else:
     KNN_AUC = roc_auc_score(y_valid, KNN_Predict) 
     print("AUC: " + str(KNN_AUC))
 
+    print("--------------------------------------------------")
+    print("DECISION TREE")
+    print("--------------------------------------------------")
     DT_Model = DecisionTreeClassifier()
     DT_Model.fit(X_train, y_train)
     DT_Predict = DT_Model.predict(X_valid)
@@ -274,6 +224,9 @@ else:
     X_train_LSVC, X_valid_LSVC, y_train_LSVC, y_valid_LSVC = train_test_split(
         X_train_LSVC, y_train_LSVC, test_size = 0.2, random_state = 420)
 
+    print("--------------------------------------------------")
+    print("LINEAR SVC")
+    print("--------------------------------------------------")
     LSVC_Model = DecisionTreeClassifier()
     LSVC_Model.fit(X_train_LSVC, y_train_LSVC)
     LSVC_Predict = LSVC_Model.predict(X_valid_LSVC)
@@ -283,6 +236,9 @@ else:
     LSVC_AUC = roc_auc_score(y_valid_LSVC, LSVC_Predict) 
     print("AUC: " + str(LSVC_AUC))
 
+    print("--------------------------------------------------")
+    print("XGBOOST")
+    print("--------------------------------------------------")
     XGB_Model = XGBClassifier(objective = "binary:logistic", n_estimators = 10, seed = 123)
     XGB_Model.fit(X_train, y_train)
     XGB_Predict = XGB_Model.predict(X_valid)
@@ -291,11 +247,10 @@ else:
 
     XGB_AUC = roc_auc_score(y_valid, XGB_Predict) 
     print("AUC: " + str(XGB_AUC))
-
-
-
-
-
+    print("--------------------------------------------------")
+    print("--------------------------------------------------")
+    print("--------------------------------------------------")
+    print("MODEL PERFORMANCE")
     model_performance_accuracy = pd.DataFrame({'Model': ['LogisticRegression', 
                                                         'RandomForestClassifier', 
                                                         'KNeighborsClassifier',
@@ -325,4 +280,28 @@ else:
 
     print(model_performance_accuracy.sort_values(by = "Accuracy", ascending = False))
 
+    plt.figure(figsize=(10, 6))
+    plt.bar(model_performance_accuracy['Model'], model_performance_accuracy['Accuracy'], color='blue')
+    plt.xlabel('Model')
+    plt.ylabel('Accuracy')
+    plt.title('Model Performance - Accuracy')
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+
+    # Display the plot
+    plt.show()
+
+
+
     print(model_performance_AUC.sort_values(by = "AUC", ascending = False))
+
+    plt.figure(figsize=(10, 6))
+    plt.bar(model_performance_AUC['Model'], model_performance_AUC['AUC'], color='green')
+    plt.xlabel('Model')
+    plt.ylabel('AUC')
+    plt.title('Model Performance - AUC')
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+
+    # Display the plot
+    plt.show()
